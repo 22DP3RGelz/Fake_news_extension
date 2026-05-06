@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Fake News Detector</title>
+  <!-- Link to external stylesheet for all popup UI styling -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Header bar: extension title on the left, version number on the right -->
+  <div class="header">
+    <h2 class="ext-title">Fake News Detector</h2>
+    <div class="header-actions">
+      <button id="settingsBtn" class="settings-btn" type="button">Settings</button>
+      <span class="ext-version">v1.0</span>
+    </div>
+  </div>
+
+  <!-- Controls section: contains the main analyze button and loading spinner -->
+  <div class="controls">
+    <!-- Main call-to-action button — clicking this triggers handleAnalyzeClick() in popup.js -->
+    <button id="analyzeBtn">Analyze Page</button>
+    <!-- Spinner shown while analysis is running; hidden by default via the 'hidden' class -->
+    <div id="spinner" class="spinner hidden" aria-hidden="true"></div>
+  </div>
+
+  <!-- Score row: progress bar meter + numerical score text -->
+  <div class="score-row">
+    <!-- Outer track of the credibility meter bar -->
+    <div id="meter" class="meter">
+      <!-- Inner fill — width is updated dynamically in popup.js based on score -->
+      <div id="meter-fill"></div>
+    </div>
+    <!-- Text label showing the score e.g. "Score: 7/10" -->
+    <div id="scoreText" class="score-text">Score: -</div>
+  </div>
+
+  <!-- Result row: colored badge (safe/warn/danger) + verdict text -->
+  <div class="result-row">
+    <!-- Badge color and text are set dynamically in popup.js (safe/warn/danger class) -->
+    <div id="levelBadge" class="level-badge">Waiting...</div>
+    <!-- Longer descriptive verdict text label -->
+    <h3 id="result" class="result-text">Waiting...</h3>
+  </div>
+
+  <!-- Non-article warning: shown when the open page fails the news/article gate -->
+  <p id="nonArticleWarning" class="non-article-warning" style="display:none;"></p>
+
+  <!-- Author box: only visible when an author was successfully detected on the page -->
+  <div id="authorBox" style="display:none; text-align:left; margin-bottom:8px;">
+    <strong>Author:</strong> <span id="authorName"></span>
+    <!-- authorName span is filled with the detected author string by popup.js -->
+  </div>
+
+  <!-- Domain status section: shows trusted/suspicious/unknown domain info and approve button -->
+  <div id="domainStatus" class="domain-status-wrapper" style="display:none; text-align:left; margin-bottom:8px;">
+    <!-- Text line like "Domain: bbc.com — Trusted" filled by popup.js -->
+    <div id="domainInfo" class="domain-info" style="font-size:12px; color:#333;"></div>
+    <!-- Container for the "Approve domain" button (only shown for unknown domains) -->
+    <div id="domainActions" class="domain-actions" style="margin-top:6px;"></div>
+  </div>
+
+  <!-- Language warning: shown when the article is detected as non-English -->
+  <p id="languageWarning" class="language-warning" style="display:none;"></p>
+
+  <!-- Issues section: lists all detected signals (both good and bad) -->
+  <!-- NOTE: Author and Domain are shown above in separate boxes, so they are excluded from this list -->
+  <!-- Only relevant issues are displayed here:
+       - Negative indicators (red flags) are shown when triggered
+       - Positive indicators (good signals) are shown when found
+       - Language-dependent checks are hidden for non-English articles
+       - Modular design: shows only necessary issues, not empty/missing ones -->
+  <div class="reasons-wrapper">
+    <h4 class="section-title">Issues</h4>
+    <!-- Each <li> in this list represents one relevant factor from the analysis result -->
+    <ul id="reasons" class="reasons-list"></ul>
+  </div>
+
+  <!-- External Fact-Checks section: links to Google, Snopes, PolitiFact, etc. -->
+  <div id="externalChecksWrapper" class="external-checks-wrapper">
+    <h4 class="section-title">External Fact-Checks</h4>
+    <!-- Default placeholder text; replaced with links after analysis -->
+    <div id="externalChecks" class="external-checks">
+      <p style="color:#999; margin:0;">Use external sources to verify claims</p>
+    </div>
+  </div>
+
+  <!-- Visual separator line between fact-checks and related articles -->
+  <hr class="sep">
+
+  <!-- Related Articles section: search links built from the article's topic keywords -->
+  <h4 id="relatedArticlesTitle" class="section-title">Related Articles</h4>
+  <div id="relatedArticles" class="related-articles">
+    <!-- Default placeholder; replaced by fetchRelatedArticles() in related-articles.js -->
+    <p style="color: #999; margin: 0;">Search for more articles...</p>
+  </div>
+
+  <!-- Load related-articles.js first since popup.js calls fetchRelatedArticles() -->
+  <script src="related-articles.js"></script>
+  <!-- Main popup logic: event listeners, analysis result rendering -->
+  <script src="popup.js"></script>
+</body>
+</html>

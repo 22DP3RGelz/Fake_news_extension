@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Fake News Detector Settings</title>
+  <link rel="stylesheet" href="settings.css">
+</head>
+<body>
+  <main class="settings-shell">
+    <header class="settings-header">
+      <div>
+        <h1>Fake News Detector Settings</h1>
+        <p>Manage local rules used by the extension.</p>
+      </div>
+      <span id="saveStatus" class="status-pill">Loading...</span>
+    </header>
+
+    <section class="settings-panel">
+      <div class="panel-header">
+        <h2>Article Gate</h2>
+        <p>Choose how strict the extension should be before analyzing a page.</p>
+      </div>
+      <div class="segmented-control" role="group" aria-label="Article gate mode">
+        <label><input type="radio" name="articleGateMode" value="strict"> Strict</label>
+        <label><input type="radio" name="articleGateMode" value="balanced"> Balanced</label>
+        <label><input type="radio" name="articleGateMode" value="lenient"> Lenient</label>
+      </div>
+    </section>
+
+    <section class="settings-grid">
+      <section class="settings-panel">
+        <div class="panel-header">
+          <h2>Trusted Domains</h2>
+          <p>Domains treated as established sources.</p>
+        </div>
+        <form id="trustedDomainForm" class="add-row">
+          <input id="trustedDomainInput" type="text" placeholder="example.com" autocomplete="off">
+          <button type="submit">Add</button>
+        </form>
+        <ul id="trustedDomainsList" class="item-list"></ul>
+      </section>
+
+      <section class="settings-panel">
+        <div class="panel-header">
+          <h2>Clickbait Words</h2>
+          <p>Words and phrases that increase suspicion when found.</p>
+        </div>
+        <form id="clickbaitWordForm" class="add-row">
+          <input id="clickbaitWordInput" type="text" placeholder="shocking" autocomplete="off">
+          <button type="submit">Add</button>
+        </form>
+        <ul id="clickbaitWordsList" class="item-list"></ul>
+      </section>
+
+      <section class="settings-panel">
+        <div class="panel-header">
+          <h2>Approved Domains</h2>
+          <p>Your personal trusted domains synced by Chrome.</p>
+        </div>
+        <form id="approvedDomainForm" class="add-row">
+          <input id="approvedDomainInput" type="text" placeholder="my-local-news.org" autocomplete="off">
+          <button type="submit">Add</button>
+        </form>
+        <ul id="approvedDomainsList" class="item-list"></ul>
+      </section>
+    </section>
+  </main>
+
+  <script src="settings.js"></script>
+</body>
+</html>

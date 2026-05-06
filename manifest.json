@@ -1,0 +1,40 @@
+{
+  "manifest_version": 3,
+  "name": "Fake News Detector",
+  "version": "1.0",
+  "description": "Analyzes articles for accuracy, credibility, and trustworthiness",
+  "permissions": ["activeTab", "scripting", "tabs", "storage"],
+  "host_permissions": ["<all_urls>"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Analyze this article"
+  },
+  "options_ui": {
+    "page": "settings.html",
+    "open_in_tab": true
+  },
+  "background": {
+    "service_worker": "storage/background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": [
+        "storage/storage-manager.js",
+        "helpers.js",
+        "trust-checks/author-detector.js",
+        "trust-checks/text-checker.js",
+        "trust-checks/source-checker.js",
+        "trust-checks/domain-checker.js",
+        "trust-checks/translation.js",
+        "trust-checks/clickbait-words.js",
+        "trust-checks/misleading-content.js",
+        "trust-checks/trusted-domains.js",
+        "trust-checks/Readability-readerable.js",
+        "trust-checks/article-detector.js",
+        "content.js"
+      ]
+    }
+  ]
+}

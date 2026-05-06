@@ -1,0 +1,254 @@
+/* Base popup body — sets font, fixed width, padding, and background */
+body {
+  font-family: Arial, sans-serif; /* Clean sans-serif for readability at small size */
+  width: 320px;                   /* Fixed popup width — Chrome extension popups have a max */
+  padding: 14px;                  /* Inner breathing room */
+  background: #f5f7fa;            /* Light grey background, softer than pure white */
+  color: #222;                    /* Near-black text for good contrast */
+}
+
+/* Header row — title on the left, version number on the right */
+.header {
+  display: flex;                    /* Flex layout to align children side by side */
+  align-items: center;              /* Vertically center title and version text */
+  justify-content: space-between;  /* Push title left and version right */
+  margin-bottom: 8px;              /* Space below header before the analyze button */
+}
+.ext-title {
+  margin: 0;        /* Remove default h2 margins */
+  font-size: 16px;  /* Slightly smaller than default h2 so it fits the popup */
+}
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.settings-btn {
+  width: auto;
+  padding: 6px 8px;
+  background: #495057;
+  font-size: 11px;
+  border-radius: 5px;
+}
+.settings-btn:hover { background: #343a40; }
+.ext-version {
+  font-size: 11px;  /* Small, secondary version label */
+  color: #666;      /* Muted grey — less important than the title */
+}
+
+/* Primary action button (Analyze Page) */
+button {
+  padding: 10px;           /* Generous tap target */
+  width: 100%;             /* Full-width button */
+  border: none;            /* Remove browser default border */
+  background: #2b8a3e;    /* Green — signals a safe/go action */
+  color: white;            /* White text on green */
+  font-weight: bold;       /* Bold for emphasis */
+  border-radius: 6px;      /* Rounded corners for modern look */
+  cursor: pointer;         /* Show hand cursor on hover */
+}
+
+button:hover { background: #267a36; }          /* Slightly darker green on hover */
+button:disabled { opacity: 0.6; cursor: default; } /* Faded + default cursor when disabled */
+
+.controls { margin-bottom: 12px; } /* Space between button and score meter row */
+
+/* Loading spinner — shown while analysis is running */
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 3px solid #e6e6e6;       /* Light grey base ring */
+  border-top: 3px solid #2b8aef;   /* Blue top arc — creates spinning illusion */
+  border-radius: 50%;              /* Full circle */
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 8px;                /* Space between button text and spinner */
+}
+.spinner.hidden { display: none; } /* Hidden class completely hides the spinner */
+
+/* CSS animation: rotate 360° infinitely for the spinning effect */
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.spinner { animation: spin 1s linear infinite; } /* Apply spin animation — 1 full rotation per second */
+
+/* Score row — progress bar and "Score: X/10" label side by side */
+.score-row { display:flex; align-items:center; gap:10px; margin-bottom: 8px; }
+
+/* Outer track of the score meter */
+.meter {
+  flex: 1;                    /* Meter takes all available horizontal space */
+  height: 14px;               /* Thin bar */
+  background: #e9ecef;        /* Light grey empty track */
+  border-radius: 8px;         /* Pill-shaped track */
+  overflow: hidden;           /* Ensures fill bar stays within rounded corners */
+}
+
+/* Filled portion of the meter — width is set dynamically in popup.js */
+#meter-fill {
+  height: 100%;
+  width: 0%;                          /* Start at 0 (animated to actual score) */
+  transition: width 0.35s ease;       /* Smooth animation when width changes */
+  border-radius: 8px;
+}
+
+.score-text {
+  min-width: 78px;       /* Fixed width so text doesn't shift layout */
+  text-align: right;     /* Right-align for visual balance */
+  font-weight: bold;
+  color: #333;
+}
+
+/* Verdict badge (Likely Safe / Possibly Misleading / Highly Suspicious) */
+.level-badge {
+  display: inline-block;
+  padding: 6px 8px;
+  border-radius: 14px;  /* Pill shape */
+  font-size: 12px;
+  color: #fff;           /* White text on all badge colors */
+  margin-right: 8px;
+}
+.level-badge.safe   { background: #2ecc71; }  /* Green for safe */
+.level-badge.warn   { background: #f39c12; }  /* Orange for possibly misleading */
+.level-badge.danger { background: #e74c3c; }  /* Red for highly suspicious */
+.level-badge.neutral { background: #6c757d; } /* Grey for pages that are not articles */
+
+/* Row containing the badge and the result text label */
+.result-row { display:flex; align-items:center; gap:8px; justify-content:flex-start; margin-bottom: 8px; }
+.result-text { margin: 0; font-size: 13px; } /* Result label next to badge */
+
+/* Yellow/red warning box shown for non-English articles */
+.language-warning {
+  display: block;
+  color: #8a1f11;              /* Dark red text */
+  background: #f8d7da;         /* Light pink background */
+  border: 1px solid #f5c2c7;  /* Pink border */
+  padding: 8px;
+  border-radius: 5px;
+  margin: 8px 0;
+  font-size: 12px;
+}
+
+.non-article-warning {
+  display: block;
+  color: #5c3600;
+  background: #fff3cd;
+  border: 1px solid #ffecb5;
+  padding: 8px;
+  border-radius: 5px;
+  margin: 8px 0;
+  font-size: 12px;
+  text-align: left;
+}
+
+.section-title { font-size: 12px; margin: 8px 0 6px; color:#333; text-align: left; }
+
+/* Container for the Issues list */
+.reasons-wrapper { text-align: left; }
+
+/* The unordered list of issue rows */
+.reasons-list { list-style: none; padding: 0; margin: 0 0 8px 0; }
+
+/* Each individual issue row */
+.reasons-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* Push label left, Go button right */
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: #fff;               /* White card on grey background */
+  margin-bottom: 6px;
+  border: 1px solid #eee;         /* Subtle border */
+}
+
+.reasons-list li.article-check-failed {
+  border-color: #ffecb5;
+  background: #fffdf5;
+}
+
+/* Left side of each issue row — stacks label above detail text */
+.reason-left { display:flex; flex-direction:column; align-items:flex-start; }
+.reason-left .label  { font-weight:600; font-size:13px; }  /* Bold issue label */
+.reason-left .detail { font-size:11px; color:#666; }        /* Grey detail/example text */
+
+/* Right side — contains the Go button */
+.reason-actions { display:flex; gap:8px; align-items:center; }
+
+/* The Go button inside each issue row */
+.reason-actions button {
+  padding: 6px 8px;
+  font-size: 12px;
+  border-radius: 6px;
+  background: #2196F3;  /* Blue — distinct from the main analyze button */
+  color: #fff;
+  border: none;
+  cursor: pointer;
+}
+.reason-actions button:hover { background: #0b7dda; } /* Darker blue on hover */
+
+/* External fact-check links container */
+.external-checks {
+  text-align: left;
+  background: #fff;
+  border: 1px solid #eee;
+  padding: 8px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+.external-checks a { color:#2196F3; text-decoration:none; display:block; margin-bottom:6px; }
+.external-checks a:hover { text-decoration:underline; }
+
+/* Scrollable container for the related articles list */
+.related-articles {
+  font-size: 12px;
+  max-height: 150px;    /* Limit height so it doesn't overflow the popup */
+  overflow-y: auto;     /* Allow vertical scrolling if list is long */
+  border: 1px solid #eee;
+  padding: 8px;
+  border-radius: 6px;
+  background: #fff;
+}
+.related-articles a { color:#2196F3; text-decoration:none; display:block; margin-bottom:6px; }
+
+/* ============================================ */
+/* Highlight styles — applied by content scripts to mark suspicious text in the article page */
+/* ============================================ */
+
+mark.nd-highlight      { padding: 0 3px; border-radius: 3px; }              /* Base highlight style */
+mark.nd-clickbait      { background: #fff9c4; color: #000; }                /* Yellow — clickbait words */
+mark.nd-caps           { background: #ffe0b2; color: #000; }                /* Orange — excessive CAPS */
+mark.nd-punct          { background: #ffcdd2; color: #000; }                /* Red-pink — !! ?? */
+mark.nd-misleading     { background: #e1bee7; color: #000; }                /* Purple — misleading content */
+mark.nd-links          { background: #e3f2fd; color: #000; }                /* Light blue — source links */
+mark.nd-attribution    { background: #f1f8e9; color: #000; }                /* Light green — attribution */
+mark.nd-author         { background: #e0f7fa; color: #000; }                /* Cyan — author byline */
+mark.nd-domain         { background: #f3e5f5; color: #000; }                /* Light purple — domain */
+mark.nd-ads            { background: #f9fbe7; color: #000; }                /* Pale yellow — ads */
+mark.nd-wire           { background: #c8e6c9; color: #000; }                /* Green — wire service */
+mark.nd-anonymous      { background: #ffccbc; color: #000; }                /* Peach — anonymous sources */
+mark.nd-imageSource    { background: #b3e5fc; color: #000; }                /* Light blue — image credits */
+
+/* Custom scrollbar styling for the related articles and reasons list */
+.related-articles::-webkit-scrollbar,
+.reasons-list::-webkit-scrollbar { width: 6px; }  /* Thin scrollbar */
+
+.related-articles::-webkit-scrollbar-thumb,
+.reasons-list::-webkit-scrollbar-thumb {
+  background: #cfcfcf;    /* Grey thumb */
+  border-radius: 4px;     /* Rounded thumb */
+}
+
+/* Domain status card — wraps domain info and approve button */
+.domain-status-wrapper { background: #fff; border: 1px solid #eee; padding: 8px; border-radius: 6px; }
+.domain-info  { font-size: 12px; color: #333; }
+
+/* Approve domain button — green like the main button but smaller */
+.approve-btn {
+  padding: 8px 10px;
+  background: #2b8a3e;  /* Same green as main analyze button */
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.approve-btn:hover    { background: #267a36; }
+.approve-btn[disabled] { opacity: 0.6; cursor: default; }
