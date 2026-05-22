@@ -275,8 +275,11 @@ body {
   margin: 0;
   overflow-x: hidden;
   overflow-y: auto;
-  resize: both;
 }
+
+body.popup-size-small { width: 320px; }
+body.popup-size-medium { width: 420px; }
+body.popup-size-large { width: 520px; }
 
 .header,
 .score-row,

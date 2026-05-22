@@ -1,5 +1,12 @@
 // Detect Firefox vs Chrome and use the appropriate extension API object
 const api = typeof browser !== "undefined" ? browser : chrome;
+const POPUP_SIZE_STORAGE_KEY = "popupSize";
+const POPUP_SIZES = ["small", "medium", "large"];
+const POPUP_SIZE_LABELS = {
+  small: "Small",
+  medium: "Medium",
+  large: "Large"
+};
 
 // Tracks which occurrence index we're currently showing for each issue type
 // Allows "Go" buttons to cycle through multiple instances of the same issue
@@ -8,10 +15,20 @@ const issueIndexes = {};
 // Sets up the popup UI — attaches event listeners and loads initial data
 function setupUI() {
   const analyzeBtn = document.getElementById("analyzeBtn");
+  const popupSizeBtn = document.getElementById("popupSizeBtn");
   const settingsBtn = document.getElementById("settingsBtn");
 
   if (analyzeBtn) {
     analyzeBtn.addEventListener("click", handleAnalyzeClick); // Wire up main analyze button
+  }
+
+  loadPopupSizePreference().catch(error => {
+    console.warn("Popup size preference failed to load", error);
+    setPopupSize("medium");
+  });
+
+  if (popupSizeBtn) {
+    popupSizeBtn.addEventListener("click", cyclePopupSize);
   }
 
   if (settingsBtn) {
@@ -22,6 +39,90 @@ function setupUI() {
   if (typeof fetchRelatedArticles === 'function') {
     fetchRelatedArticles();
   }
+}
+
+function normalizePopupSize(size) {
+  return POPUP_SIZES.includes(size) ? size : "medium";
+}
+
+function getCurrentPopupSize() {
+  const className = Array.from(document.body.classList)
+    .find(name => name.startsWith("popup-size-"));
+
+  return normalizePopupSize(className ? className.replace("popup-size-", "") : "medium");
+}
+
+function setPopupSize(size) {
+  const normalized = normalizePopupSize(size);
+  const popupSizeBtn = document.getElementById("popupSizeBtn");
+
+  document.body.classList.remove(...POPUP_SIZES.map(value => `popup-size-${value}`));
+  document.body.classList.add(`popup-size-${normalized}`);
+
+  if (popupSizeBtn) {
+    popupSizeBtn.textContent = POPUP_SIZE_LABELS[normalized];
+    popupSizeBtn.title = `Popup size: ${POPUP_SIZE_LABELS[normalized]}`;
+  }
+}
+
+function getStoredPopupSize() {
+  return new Promise((resolve) => {
+    try {
+      if (api.storage?.local?.get) {
+        const storageResult = api.storage.local.get([POPUP_SIZE_STORAGE_KEY], (result) => {
+          resolve(normalizePopupSize(result?.[POPUP_SIZE_STORAGE_KEY]));
+        });
+        if (storageResult && typeof storageResult.then === "function") {
+          storageResult
+            .then(result => resolve(normalizePopupSize(result?.[POPUP_SIZE_STORAGE_KEY])))
+            .catch(() => resolve("medium"));
+        }
+        return;
+      }
+    } catch (e) {
+      // Fall back to localStorage below.
+    }
+
+    try {
+      resolve(normalizePopupSize(localStorage.getItem(POPUP_SIZE_STORAGE_KEY)));
+    } catch (e) {
+      resolve("medium");
+    }
+  });
+}
+
+function savePopupSize(size) {
+  const normalized = normalizePopupSize(size);
+
+  try {
+    if (api.storage?.local?.set) {
+      const storageResult = api.storage.local.set({ [POPUP_SIZE_STORAGE_KEY]: normalized });
+      if (storageResult && typeof storageResult.catch === "function") {
+        storageResult.catch(() => {});
+      }
+      return;
+    }
+  } catch (e) {
+    // Fall back to localStorage below.
+  }
+
+  try {
+    localStorage.setItem(POPUP_SIZE_STORAGE_KEY, normalized);
+  } catch (e) {
+    // Ignore storage failures; the current popup still updates.
+  }
+}
+
+async function loadPopupSizePreference() {
+  setPopupSize(await getStoredPopupSize());
+}
+
+function cyclePopupSize() {
+  const current = getCurrentPopupSize();
+  const next = POPUP_SIZES[(POPUP_SIZES.indexOf(current) + 1) % POPUP_SIZES.length];
+
+  setPopupSize(next);
+  savePopupSize(next);
 }
 
 function openSettingsPage() {
