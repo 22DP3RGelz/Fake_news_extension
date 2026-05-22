@@ -1,6 +1,5 @@
 // Detect Firefox vs Chrome and use the appropriate extension API object
 const api = typeof browser !== "undefined" ? browser : chrome;
-const POPUP_SIZE_STORAGE_KEY = "popupSize";
 const POPUP_SIZES = ["small", "medium", "large"];
 const POPUP_SIZE_LABELS = {
   small: "Small",
@@ -22,10 +21,7 @@ function setupUI() {
     analyzeBtn.addEventListener("click", handleAnalyzeClick); // Wire up main analyze button
   }
 
-  loadPopupSizePreference().catch(error => {
-    console.warn("Popup size preference failed to load", error);
-    setPopupSize("medium");
-  });
+  setPopupSize("small");
 
   if (popupSizeBtn) {
     popupSizeBtn.addEventListener("click", cyclePopupSize);
@@ -42,14 +38,14 @@ function setupUI() {
 }
 
 function normalizePopupSize(size) {
-  return POPUP_SIZES.includes(size) ? size : "medium";
+  return POPUP_SIZES.includes(size) ? size : "small";
 }
 
 function getCurrentPopupSize() {
   const className = Array.from(document.body.classList)
     .find(name => name.startsWith("popup-size-"));
 
-  return normalizePopupSize(className ? className.replace("popup-size-", "") : "medium");
+  return normalizePopupSize(className ? className.replace("popup-size-", "") : "small");
 }
 
 function setPopupSize(size) {
@@ -65,64 +61,11 @@ function setPopupSize(size) {
   }
 }
 
-function getStoredPopupSize() {
-  return new Promise((resolve) => {
-    try {
-      if (api.storage?.local?.get) {
-        const storageResult = api.storage.local.get([POPUP_SIZE_STORAGE_KEY], (result) => {
-          resolve(normalizePopupSize(result?.[POPUP_SIZE_STORAGE_KEY]));
-        });
-        if (storageResult && typeof storageResult.then === "function") {
-          storageResult
-            .then(result => resolve(normalizePopupSize(result?.[POPUP_SIZE_STORAGE_KEY])))
-            .catch(() => resolve("medium"));
-        }
-        return;
-      }
-    } catch (e) {
-      // Fall back to localStorage below.
-    }
-
-    try {
-      resolve(normalizePopupSize(localStorage.getItem(POPUP_SIZE_STORAGE_KEY)));
-    } catch (e) {
-      resolve("medium");
-    }
-  });
-}
-
-function savePopupSize(size) {
-  const normalized = normalizePopupSize(size);
-
-  try {
-    if (api.storage?.local?.set) {
-      const storageResult = api.storage.local.set({ [POPUP_SIZE_STORAGE_KEY]: normalized });
-      if (storageResult && typeof storageResult.catch === "function") {
-        storageResult.catch(() => {});
-      }
-      return;
-    }
-  } catch (e) {
-    // Fall back to localStorage below.
-  }
-
-  try {
-    localStorage.setItem(POPUP_SIZE_STORAGE_KEY, normalized);
-  } catch (e) {
-    // Ignore storage failures; the current popup still updates.
-  }
-}
-
-async function loadPopupSizePreference() {
-  setPopupSize(await getStoredPopupSize());
-}
-
 function cyclePopupSize() {
   const current = getCurrentPopupSize();
   const next = POPUP_SIZES[(POPUP_SIZES.indexOf(current) + 1) % POPUP_SIZES.length];
 
   setPopupSize(next);
-  savePopupSize(next);
 }
 
 function openSettingsPage() {
