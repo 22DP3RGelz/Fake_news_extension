@@ -252,3 +252,52 @@ mark.nd-imageSource    { background: #b3e5fc; color: #000; }                /* L
 }
 .approve-btn:hover    { background: #267a36; }
 .approve-btn[disabled] { opacity: 0.6; cursor: default; }
+
+/* Flexible popup sizing override.
+   The browser still enforces popup limits, but the UI no longer stays locked
+   to the original 320px width. */
+html {
+  min-width: 320px;
+  max-width: 520px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 320px;
+  width: 420px;
+  max-width: 520px;
+  max-height: 600px;
+  margin: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  resize: both;
+}
+
+.header,
+.score-row,
+.result-row,
+.reasons-list li {
+  min-width: 0;
+}
+
+.result-text,
+.reason-left,
+.reason-left .detail,
+.external-checks,
+.related-articles {
+  overflow-wrap: anywhere;
+}
+
+.reason-left {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.reason-actions {
+  flex: 0 0 auto;
+}
