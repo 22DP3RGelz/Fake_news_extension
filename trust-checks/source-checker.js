@@ -3,6 +3,149 @@
 // ============================================
 // Checks: attribution, hyperlinks quality, wire services, anonymous sources, image captions
 
+const IMAGE_CREDIT_SELECTOR = [
+  'figcaption',
+  '.caption',
+  '.caption-text',
+  '.image-caption',
+  '.img-caption',
+  '.photo-caption',
+  '.photo-credit',
+  '.image-credit',
+  '.media-caption',
+  '.wp-caption-text',
+  '[class*="caption"]',
+  '[class*="credit"]',
+  '[class*="copyright"]',
+  '[data-testid*="caption"]',
+  '[data-testid*="credit"]'
+].join(',');
+
+const IMAGE_CREDIT_TEXT_REGEX = /\b(?:source|photo|image|credit|via|copyright|getty images|associated press|ap photo|reuters|afp|epa|alamy|shutterstock|istock|wikimedia commons|unsplash|pexels)\b|\u00a9/i;
+
+function getImageCreditText(element) {
+  if (!element) return "";
+
+  return (
+    element.innerText ||
+    element.textContent ||
+    element.alt ||
+    element.title ||
+    element.getAttribute?.("aria-label") ||
+    ""
+  ).replace(/\s+/g, " ").trim();
+}
+
+function isCaptionLikeElement(element) {
+  if (!element || !element.tagName) return false;
+
+  const tag = element.tagName.toLowerCase();
+  const descriptor = [
+    tag,
+    element.className || "",
+    element.id || "",
+    element.getAttribute?.("data-testid") || ""
+  ].join(" ");
+
+  return /figcaption|caption|credit|copyright/i.test(descriptor);
+}
+
+function hasNearbyImage(element) {
+  if (!element || !element.closest) return false;
+  if (element.querySelector?.("img")) return true;
+
+  const wrapper = element.closest(
+    'figure, picture, [class*="figure"], [class*="image"], [class*="photo"], [class*="media"]'
+  );
+  if (wrapper && wrapper.querySelector?.("img")) return true;
+
+  let sibling = element.previousElementSibling;
+  for (let i = 0; sibling && i < 3; i += 1) {
+    if (sibling.tagName === "IMG" || sibling.tagName === "PICTURE" || sibling.querySelector?.("img")) {
+      return true;
+    }
+    sibling = sibling.previousElementSibling;
+  }
+
+  return false;
+}
+
+function isImageCreditElement(element) {
+  const text = getImageCreditText(element);
+  if (!text || text.length > 500) return false;
+
+  return IMAGE_CREDIT_TEXT_REGEX.test(text) || (isCaptionLikeElement(element) && hasNearbyImage(element));
+}
+
+function collectNearbyCaptionElements(img) {
+  const candidates = [];
+  const containers = [
+    img.closest?.("figure"),
+    img.closest?.("picture")?.parentElement,
+    img.parentElement,
+    img.parentElement?.parentElement
+  ].filter(Boolean);
+
+  containers.forEach(container => {
+    if (container.querySelectorAll) {
+      candidates.push(...Array.from(container.querySelectorAll(IMAGE_CREDIT_SELECTOR)));
+    }
+  });
+
+  const anchors = [
+    img,
+    img.closest?.("figure"),
+    img.closest?.("picture"),
+    img.parentElement
+  ].filter(Boolean);
+
+  anchors.forEach(anchor => {
+    let sibling = anchor.nextElementSibling;
+    for (let i = 0; sibling && i < 3; i += 1) {
+      if (isCaptionLikeElement(sibling) || IMAGE_CREDIT_TEXT_REGEX.test(getImageCreditText(sibling))) {
+        candidates.push(sibling);
+      }
+      if (sibling.querySelectorAll) {
+        candidates.push(...Array.from(sibling.querySelectorAll(IMAGE_CREDIT_SELECTOR)));
+      }
+      sibling = sibling.nextElementSibling;
+    }
+  });
+
+  return candidates;
+}
+
+function getImageCreditElements(root) {
+  const scope = root || document;
+  const seen = new Set();
+  const elements = [];
+
+  const addCandidate = (element) => {
+    if (!element || seen.has(element) || !isImageCreditElement(element)) return;
+
+    seen.add(element);
+    elements.push(element);
+  };
+
+  Array.from(scope.querySelectorAll?.(IMAGE_CREDIT_SELECTOR) || []).forEach(addCandidate);
+
+  Array.from(scope.querySelectorAll?.("img") || []).slice(0, 30).forEach(img => {
+    if (IMAGE_CREDIT_TEXT_REGEX.test(getImageCreditText(img))) {
+      addCandidate(img);
+    }
+    collectNearbyCaptionElements(img).forEach(addCandidate);
+  });
+
+  return elements;
+}
+
+function markImageCreditElement(element) {
+  if (!element) return;
+
+  element.setAttribute("data-reason-id", "imageSource");
+  element.classList.add("nd-highlight", "nd-imageSource");
+}
+
 // Evaluates the quality and quantity of sources cited in the article
 async function checkSources(searchText, articleElement, weights) {
   let rawScore = 0;               // Cumulative risk score from source checks
@@ -262,35 +405,12 @@ async function checkSources(searchText, articleElement, weights) {
   // --- Check 5: Image Captions and Photo Credit Lines ---
   // Articles that properly credit images demonstrate editorial accountability
   try {
-    const figcaps = Array.from(articleElement.querySelectorAll(
-      'figcaption, .caption, .photo-credit, .image-credit, .img-caption'
-    ));
+    getImageCreditElements(articleElement).forEach(element => {
+      const text = getImageCreditText(element);
+      if (!text || imageSourceCaptions.includes(text)) return;
 
-    figcaps.forEach(fc => {
-      const t = (fc.innerText || '').trim();
-      if (t && /source:|photo:|image:|credit:|via\b/i.test(t)) {
-        imageSourceCaptions.push(t);
-        fc.setAttribute('data-reason-id', 'imageSource');
-        fc.classList.add('nd-highlight', 'nd-imageSource');
-      }
-    });
-
-    const imgs = Array.from(articleElement.querySelectorAll('img'));
-    imgs.slice(0, 20).forEach(img => {
-      const alt = (img.alt || '').trim();
-      if (alt && /photo:|image:|credit:|via\b|source:/i.test(alt)) {
-        imageSourceCaptions.push(alt);
-        img.setAttribute('data-reason-id', 'imageSource');
-        img.classList.add('nd-highlight', 'nd-imageSource');
-      }
-
-      const sib = img.nextElementSibling ||
-                  (img.parentElement && img.parentElement.querySelector('.caption'));
-      if (sib && sib.innerText && /source:|photo:|credit:|via\b/i.test(sib.innerText)) {
-        imageSourceCaptions.push(sib.innerText.trim());
-        sib.setAttribute('data-reason-id', 'imageSource');
-        sib.classList.add('nd-highlight', 'nd-imageSource');
-      }
+      imageSourceCaptions.push(text);
+      markImageCreditElement(element);
     });
   } catch (e) { /* ignore any DOM errors during image scanning */ }
 
@@ -300,6 +420,7 @@ async function checkSources(searchText, articleElement, weights) {
       label: 'Image captions/source credits found',
       weight: weights.imageSource || 1,
       triggered: false,
+      found: true,
       details: imageSourceCaptions.slice(0, 3).join(' | '),
       captions: imageSourceCaptions.slice(0, 5)
     });
@@ -308,7 +429,9 @@ async function checkSources(searchText, articleElement, weights) {
       id: 'imageSource',
       label: 'Image captions/source credits found',
       weight: weights.imageSource || 1,
-      triggered: false
+      triggered: false,
+      found: false,
+      captions: []
     });
   }
 

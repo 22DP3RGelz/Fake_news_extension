@@ -275,14 +275,35 @@ api.runtime.onMessage.addListener((request, sender, sendResponse) => {
     // Find all elements that were tagged with this reason ID during highlighting
     elements = Array.from(document.querySelectorAll(`[data-reason-id="${reasonId}"]`));
     
-    // Special case: if imageSource has no tagged marks, try to find them by element type
-    if (reasonId === 'imageSource' && elements.length === 0) {
-      const figcaps = Array.from(document.querySelectorAll('figcaption, .caption, .photo-credit, .image-credit, .img-caption'));
-      const imgs = Array.from(document.querySelectorAll('img'));
-      // Filter to only elements that contain source/credit keywords
-      elements = [...figcaps, ...imgs].filter(el =>
-        el && el.innerText && /source:|photo:|credit:|via\b|image:/i.test(el.innerText || el.alt || '')
-      );
+    // Special case: image credits are often captions below images, not text marks.
+    // Re-run the image-credit locator so the Go button can still find them.
+    if (reasonId === 'imageSource') {
+      let detectedImageCredits = [];
+
+      if (typeof getImageCreditElements === 'function') {
+        detectedImageCredits = getImageCreditElements(document);
+      } else {
+        const imageCreditRegex = /\b(source|photo|image|credit|via|copyright|getty images|associated press|ap photo|reuters|afp)\b|\u00a9/i;
+        const fallbackCandidates = Array.from(document.querySelectorAll(
+          'figcaption, .caption, .caption-text, .image-caption, .img-caption, .photo-caption, .photo-credit, .image-credit, .media-caption, .wp-caption-text, [class*="caption"], [class*="credit"], [class*="copyright"], img'
+        ));
+
+        detectedImageCredits = fallbackCandidates.filter(el => {
+          const text = (el.innerText || el.textContent || el.alt || el.title || '').replace(/\s+/g, ' ').trim();
+          return text && text.length <= 500 && imageCreditRegex.test(text);
+        });
+      }
+
+      detectedImageCredits.forEach(el => {
+        if (typeof markImageCreditElement === 'function') {
+          markImageCreditElement(el);
+        } else {
+          el.setAttribute('data-reason-id', 'imageSource');
+          el.classList.add('nd-highlight', 'nd-imageSource');
+        }
+      });
+
+      elements = Array.from(new Set([...elements, ...detectedImageCredits]));
     }
     
     if (elements.length > 0) {

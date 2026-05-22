@@ -63,6 +63,7 @@ function renderNonArticleResponse(response) {
   }
 
   if (levelBadge) {
+    levelBadge.style.display = "inline-block";
     levelBadge.className = "level-badge neutral";
     levelBadge.innerText = "Not a News Article";
   }
@@ -155,16 +156,17 @@ async function handleAnalyzeClick() {
     analyzeBtn.disabled = true;                      // Disable button to prevent double-clicks
     spinner.classList.remove('hidden');              // Show spinner animation
     resultEl.innerText = "Analyzing...";            // Update result text
-    levelBadge.innerText = "Analyzing...";          // Update badge text
+    levelBadge.style.display = 'none';              // Hide badge until a verdict is available
+    levelBadge.innerText = "";
     scoreText.innerText = "Score: -";               // Reset score display
     languageWarningEl.style.display = 'none';       // Hide any previous language warning
     nonArticleWarningEl.style.display = 'none';     // Hide any previous non-article warning
     nonArticleWarningEl.innerText = '';
-    externalChecksWrapper.style.display = 'block';  // Restore sections in case popup is reused
+    externalChecksWrapper.style.display = 'none';   // Show only after analysis finishes
     relatedArticlesTitle.style.display = 'block';
     relatedArticles.style.display = 'block';
     reasonsList.innerHTML = '';                      // Clear previous issues list
-    externalChecks.innerHTML = '<p style="color:#999; margin:0;">Searching external sources...</p>';
+    externalChecks.innerHTML = '';
 
     // Get the currently active browser tab
     let tabs = await api.tabs.query({ active: true, currentWindow: true });
@@ -205,6 +207,7 @@ async function handleAnalyzeClick() {
     else if (score >= 3) levelClass = 'warn'; // Yellow zone
 
     // Update the level badge appearance and text
+    levelBadge.style.display = 'inline-block';
     levelBadge.className = `level-badge ${levelClass}`;
     levelBadge.innerText = response.level ||
       (levelClass === 'danger' ? 'Highly Suspicious' : levelClass === 'warn' ? 'Possibly Misleading' : 'Likely Safe');
@@ -377,7 +380,7 @@ async function handleAnalyzeClick() {
 
         // 4. Show positive indicators only when NOT triggered (i.e., good thing found)
         if (positiveIndicators.has(f.id)) {
-          return !f.triggered; // Show if triggered = false (good signal found)
+          return !f.triggered && f.found !== false; // Show only when the signal was actually found
         }
 
         // 5. Show negative indicators only when triggered (i.e., problem found)
@@ -415,7 +418,11 @@ async function handleAnalyzeClick() {
           // Show Go button for navigable factors
           // For positive indicators: show button when triggered = false (i.e., links were found)
           // For negative indicators: show button when triggered = true (i.e., issue occurred)
+          const hasImageCreditTargets = f.id !== 'imageSource' ||
+            (Array.isArray(f.captions) && f.captions.length > 0) ||
+            (typeof f.details === 'string' && f.details.trim().length > 0);
           const showGoButton = navigable.has(f.id) &&
+            hasImageCreditTargets &&
             (f.id === 'links' ? !f.triggered : (positiveIndicators.has(f.id) ? !f.triggered : f.triggered));
           
           if (showGoButton) {
@@ -436,7 +443,7 @@ async function handleAnalyzeClick() {
               });
               
               // Advance index so next click goes to the next occurrence (wraps around)
-              if (response2 && response2.totalFound !== undefined) {
+              if (response2 && response2.success && response2.totalFound > 0) {
                 issueIndexes[f.id] = (issueIndexes[f.id] + 1) % response2.totalFound;
               }
             };
@@ -473,12 +480,11 @@ async function handleAnalyzeClick() {
       const searchText = rawText || tab.url || '';
       const q = encodeURIComponent(searchText); // URL-encode for use in query strings
 
+      externalChecksWrapper.style.display = 'block';
       externalChecks.innerHTML = ''; // Clear loading placeholder
 
-      // List of fact-checking and news search engines
+      // Site-specific fact-check searches
       const engines = [
-        { name: 'Google', url: `https://www.google.com/search?q=${q}` },
-        { name: 'Google News', url: `https://news.google.com/search?q=${q}` },
         // Use Google site: search for fact-checking sites (their own search may miss some)
         { name: 'Snopes (site search)', url: `https://www.google.com/search?q=${encodeURIComponent('site:snopes.com ' + searchText)}` },
         { name: 'PolitiFact (site search)', url: `https://www.google.com/search?q=${encodeURIComponent('site:politifact.com ' + searchText)}` },

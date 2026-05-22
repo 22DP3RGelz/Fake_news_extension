@@ -39,7 +39,7 @@
   <!-- Result row: colored badge (safe/warn/danger) + verdict text -->
   <div class="result-row">
     <!-- Badge color and text are set dynamically in popup.js (safe/warn/danger class) -->
-    <div id="levelBadge" class="level-badge">Waiting...</div>
+    <div id="levelBadge" class="level-badge" style="display:none;"></div>
     <!-- Longer descriptive verdict text label -->
     <h3 id="result" class="result-text">Waiting...</h3>
   </div>
@@ -77,13 +77,11 @@
     <ul id="reasons" class="reasons-list"></ul>
   </div>
 
-  <!-- External Fact-Checks section: links to Google, Snopes, PolitiFact, etc. -->
-  <div id="externalChecksWrapper" class="external-checks-wrapper">
+  <!-- External Fact-Checks section: site searches for Snopes, PolitiFact, FactCheck.org, etc. -->
+  <div id="externalChecksWrapper" class="external-checks-wrapper" style="display:none;">
     <h4 class="section-title">External Fact-Checks</h4>
     <!-- Default placeholder text; replaced with links after analysis -->
-    <div id="externalChecks" class="external-checks">
-      <p style="color:#999; margin:0;">Use external sources to verify claims</p>
-    </div>
+    <div id="externalChecks" class="external-checks"></div>
   </div>
 
   <!-- Visual separator line between fact-checks and related articles -->
