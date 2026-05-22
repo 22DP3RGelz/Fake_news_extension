@@ -144,18 +144,6 @@ async function loadSettings(showReady = true) {
   if (showReady) setStatus("Ready", "success");
 }
 
-async function addTrustedDomain(event) {
-  event.preventDefault();
-  const input = document.getElementById("trustedDomainInput");
-  const domain = normalizeDomain(input.value);
-  if (!domain) return setStatus("Enter a domain first.", "error");
-
-  await sendMessage({ action: "addTrustedDomain", domain });
-  input.value = "";
-  await loadSettings(false);
-  setStatus("Trusted domain added.", "success");
-}
-
 async function removeTrustedDomain(domain) {
   await sendMessage({ action: "removeTrustedDomain", domain });
   await loadSettings(false);
@@ -214,9 +202,6 @@ async function setArticleGateMode(event) {
 }
 
 function bindEvents() {
-  document.getElementById("trustedDomainForm").addEventListener("submit", (event) => {
-    addTrustedDomain(event).catch(reportError);
-  });
   document.getElementById("clickbaitWordForm").addEventListener("submit", (event) => {
     addClickbaitWord(event).catch(reportError);
   });

@@ -1,8 +1,10 @@
 // ============================================
 // ARTICLE-DETECTOR.JS - News/article page gate
 // ============================================
-// Requires all three checks to pass before credibility analysis runs:
-// 1) article metadata, 2) semantic article structure, 3) readerable text body.
+// Uses multiple signals before credibility analysis runs:
+// 1) article metadata, 2) semantic article structure, 3) readable text body.
+// Some real news pages omit metadata, so a strong semantic + readable body pair
+// is allowed even in strict mode.
 
 function getMetaContent(selector) {
   const node = document.querySelector(selector);
@@ -236,7 +238,11 @@ function getArticleGateDecision(articleChecks, mode) {
   const allPassed = passedCount === checks.length;
 
   if (articleGateMode === "strict") {
-    return { passed: allPassed, warning: null };
+    const hasStrongArticleShape = articleChecks.semantic.passed && articleChecks.readability.passed;
+    return {
+      passed: allPassed || hasStrongArticleShape,
+      warning: allPassed ? null : "Article metadata is incomplete, but analysis continued because the page has article structure and a readable body."
+    };
   }
 
   if (articleGateMode === "balanced") {
