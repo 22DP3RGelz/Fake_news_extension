@@ -279,12 +279,17 @@ api.runtime.onMessage.addListener((request, sender, sendResponse) => {
     // Re-run the image-credit locator so the Go button can still find them.
     if (reasonId === 'imageSource') {
       let detectedImageCredits = [];
+      const articleElement = typeof getArticleElement === 'function'
+        ? getArticleElement()
+        : document.body;
+
+      elements = elements.filter(element => articleElement && articleElement.contains(element));
 
       if (typeof getImageCreditElements === 'function') {
-        detectedImageCredits = getImageCreditElements(document);
+        detectedImageCredits = getImageCreditElements(articleElement);
       } else {
         const imageCreditRegex = /\b(source|photo|image|credit|via|copyright|getty images|associated press|ap photo|reuters|afp)\b|\u00a9/i;
-        const fallbackCandidates = Array.from(document.querySelectorAll(
+        const fallbackCandidates = Array.from(articleElement.querySelectorAll(
           'figcaption, .caption, .caption-text, .image-caption, .img-caption, .photo-caption, .photo-credit, .image-credit, .media-caption, .wp-caption-text, [class*="caption"], [class*="credit"], [class*="copyright"], img'
         ));
 

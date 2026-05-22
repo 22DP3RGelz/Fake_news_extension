@@ -22,6 +22,21 @@ const IMAGE_CREDIT_SELECTOR = [
 ].join(',');
 
 const IMAGE_CREDIT_TEXT_REGEX = /\b(?:source|photo|image|credit|via|copyright|getty images|associated press|ap photo|reuters|afp|epa|alamy|shutterstock|istock|wikimedia commons|unsplash|pexels)\b|\u00a9/i;
+const IMAGE_CREDIT_REJECTED_CONTAINER_SELECTOR = [
+  'nav',
+  'footer',
+  'aside',
+  '.share',
+  '.social',
+  '.related',
+  '.recommended',
+  '.newsletter',
+  '.ad',
+  '.advertisement',
+  '[class*="related"]',
+  '[class*="recommend"]',
+  '[class*="popular"]'
+].join(',');
 
 function getImageCreditText(element) {
   if (!element) return "";
@@ -52,6 +67,7 @@ function isCaptionLikeElement(element) {
 
 function hasNearbyImage(element) {
   if (!element || !element.closest) return false;
+  if (element.tagName === "IMG") return true;
   if (element.querySelector?.("img")) return true;
 
   const wrapper = element.closest(
@@ -70,11 +86,56 @@ function hasNearbyImage(element) {
   return false;
 }
 
+function getMediaBoundaryElement(element) {
+  return element?.closest?.(
+    'figure, picture, [class*="figure"], [class*="image"], [class*="photo"], [class*="media"]'
+  ) || element;
+}
+
+function hasReadableArticleTextNear(element) {
+  const boundary = getMediaBoundaryElement(element);
+  const parent = boundary && boundary.parentElement;
+  if (!parent) return false;
+
+  const hasReadableText = (node) => {
+    if (!node || node.matches?.(IMAGE_CREDIT_REJECTED_CONTAINER_SELECTOR)) return false;
+
+    const text = (node.innerText || node.textContent || "")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    return text.length >= 120 && !IMAGE_CREDIT_TEXT_REGEX.test(text);
+  };
+
+  for (const direction of ["previousElementSibling", "nextElementSibling"]) {
+    let sibling = boundary[direction];
+    for (let i = 0; sibling && i < 6; i += 1) {
+      if (hasReadableText(sibling)) return true;
+      sibling = sibling[direction];
+    }
+  }
+
+  const parentParagraphs = Array.from(parent.querySelectorAll?.("p") || [])
+    .filter(hasReadableText);
+
+  return parentParagraphs.length >= 2;
+}
+
 function isImageCreditElement(element) {
   const text = getImageCreditText(element);
   if (!text || text.length > 500) return false;
+  if (element.closest?.(IMAGE_CREDIT_REJECTED_CONTAINER_SELECTOR)) return false;
 
-  return IMAGE_CREDIT_TEXT_REGEX.test(text) || (isCaptionLikeElement(element) && hasNearbyImage(element));
+  const isImage = element.tagName === "IMG";
+  const hasCreditText = IMAGE_CREDIT_TEXT_REGEX.test(text);
+  const isInArticle = !!element.closest?.("article");
+  const isInsideArticleText = isInArticle || hasReadableArticleTextNear(element);
+
+  if (isImage) {
+    return hasCreditText && isInsideArticleText;
+  }
+
+  return hasNearbyImage(element) && isCaptionLikeElement(element) && hasCreditText && isInsideArticleText;
 }
 
 function collectNearbyCaptionElements(img) {
@@ -421,7 +482,6 @@ async function checkSources(searchText, articleElement, weights) {
       weight: weights.imageSource || 1,
       triggered: false,
       found: true,
-      details: imageSourceCaptions.slice(0, 3).join(' | '),
       captions: imageSourceCaptions.slice(0, 5)
     });
   } else {

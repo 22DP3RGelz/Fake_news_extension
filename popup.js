@@ -407,7 +407,7 @@ async function handleAnalyzeClick() {
           const detail = document.createElement('div');
           detail.className = 'detail';
           // Show details if present, otherwise omit (cleaner UI)
-          detail.textContent = f.details || '';
+          detail.textContent = f.id === 'imageSource' ? '' : (f.details || '');
           left.appendChild(label);
           if (detail && detail.textContent) left.appendChild(detail);
 
@@ -550,25 +550,6 @@ async function handleAnalyzeClick() {
         externalChecks.appendChild(p);
       }
 
-      // Display image caption credits found in the article
-      if (response.imageSourceCaptions && response.imageSourceCaptions.length) {
-        const hdr = document.createElement('div');
-        hdr.style.marginTop = '8px';
-        hdr.style.fontSize = '12px';
-        hdr.style.color = '#333';
-        hdr.textContent = 'Image credits / captions:';
-        externalChecks.appendChild(hdr);
-
-        // Show up to 5 image credits
-        response.imageSourceCaptions.slice(0, 5).forEach(c => {
-          const d = document.createElement('div');
-          d.style.fontSize = '12px';
-          d.style.color = '#444';
-          d.style.marginBottom = '4px';
-          d.textContent = c;
-          externalChecks.appendChild(d);
-        });
-      }
     } catch (e) {
       console.warn('External checks build failed', e); // Non-fatal — log and continue
     }
